@@ -18,7 +18,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             if (res.data.role === 'admin') {
                 window.location.href = './admin.html';
             } else {
-                window.location.href = './index.html';
+                window.location.href = './main.html';
             }
         }
     } catch (err) {

@@ -33,7 +33,7 @@ let currentTab = 'Open';
 
 // ─── Auth Guard ───
 if (!token) {
-    window.location.href = './login.html';
+    window.location.href = '../index.html';
 }
 
 // ─── Load User Gamification Stats ───
@@ -62,7 +62,7 @@ if (logoutBtn) {
         localStorage.removeItem('token');
         localStorage.removeItem('userName');
         localStorage.removeItem('userRole');
-        window.location.href = './login.html';
+        window.location.href = '../index.html';
     });
 }
 

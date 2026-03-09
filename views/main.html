@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Civic Issue Reporter</title>
+    <meta name="description"
+        content="Report and track civic issues in your neighborhood with geolocation and photo evidence">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- Razorpay SDK -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #000;
+            /* Dark for reels style */
+            color: #e0e0e0;
+            height: 100vh;
+            overflow: hidden;
+            /* Prevent body scroll, use container scroll */
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ─── Header ─── */
+        .header {
+            background: rgba(15, 15, 26, 0.85);
+            padding: 14px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            backdrop-filter: blur(12px);
+        }
+
+        .header h1 {
+            font-size: 1.1rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .header-links {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-stats {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        #userName {
+            color: #c4b5fd;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        #userBadge {
+            font-size: 0.7rem;
+            color: #fbbf24;
+            background: rgba(251, 191, 36, 0.15);
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-top: 2px;
+        }
+
+        .header-links a {
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 500;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            border: 1px solid rgba(99, 102, 241, 0.15);
+        }
+
+        #logoutBtn {
+            color: #f87171;
+            border-color: rgba(239, 68, 68, 0.25);
+        }
+
+        /* ─── Layout & Controls ─── */
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 16px;
+            background: #0f0f1a;
+            z-index: 900;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            color: #94a3b8;
+            border: none;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 6px 0;
+            position: relative;
+        }
+
+        .tab-btn.active {
+            color: #fff;
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #6366f1;
+            border-radius: 2px;
+        }
+
+        .map-toggle-btn {
+            background: rgba(99, 102, 241, 0.1);
+            color: #a5b4fc;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .map-toggle-btn:hover {
+            background: rgba(99, 102, 241, 0.2);
+        }
+
+        /* ─── Map Container ─── */
+        #mapContainer {
+            display: none;
+            /* hidden by default */
+            width: 100%;
+            height: 30vh;
+            border-bottom: 1px solid rgba(99, 102, 241, 0.3);
+            flex-shrink: 0;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ─── Feed Section (Reels Style) ─── */
+        .feed-section {
+            flex-grow: 1;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .feed-section::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* ─── Issue Cards ─── */
+        .issue-card {
+            width: 100%;
+            max-width: 500px;
+            /* Limit width on desktop */
+            height: calc(100vh - 120px);
+            /* Fill remaining viewport */
+            scroll-snap-align: start;
+            position: relative;
+            background: #111;
+            border-bottom: 1px solid #222;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .issue-card > img {
+            width: 100%;
+            flex: 1;
+            min-height: 0;
+            object-fit: contain;
+            background: #000;
+            display: block;
+        }
+
+        /* Overlays on image */
+        .issue-card-body {
+            flex-shrink: 0;
+            padding: 12px 16px 14px 16px;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.95) 20%, #000);
+            pointer-events: none;
+            /* lets clicks pass if needed, but we re-enable for buttons */
+        }
+
+        .issue-card-body>* {
+            pointer-events: auto;
+        }
+
+        .issue-card-body h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .issue-card-body p.desc {
+            font-size: 0.9rem;
+            color: #d1d5db;
+            margin-bottom: 8px;
+            line-height: 1.4;
+            max-height: 60px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+        }
+
+        .issue-card-body p.impact {
+            font-size: 0.85rem;
+            color: #fca5a5;
+            margin-bottom: 8px;
+            background: rgba(239, 68, 68, 0.15);
+            padding: 6px 10px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        .reporter-info {
+            font-size: 0.8rem;
+            color: #a5b4fc;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .reporter-info a {
+            color: #818cf8;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .issue-card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .status-badge {
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-open {
+            background: rgba(239, 68, 68, 0.8);
+            color: #fff;
+        }
+
+        .status-in-progress {
+            background: rgba(251, 191, 36, 0.8);
+            color: #fff;
+        }
+
+        .status-resolved {
+            background: rgba(34, 197, 94, 0.8);
+            color: #fff;
+        }
+
+        .like-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .like-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        /* Resolved Images Vertical Split */
+        .resolved-images {
+            width: 100%;
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .resolved-images .img-wrapper {
+            flex: 1;
+            min-height: 0;
+            position: relative;
+            background: #000;
+            overflow: hidden;
+        }
+
+        .resolved-images .img-wrapper + .img-wrapper {
+            border-top: 2px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .resolved-images img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+        }
+
+        /* ─── FAB ─── */
+        .fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            font-size: 1.8rem;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+            z-index: 999;
+        }
+
+        .fab:hover {
+            transform: scale(1.1);
+        }
+
+        /* ─── Modal Overlay ─── */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(6px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 10px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: linear-gradient(145deg, #1e1e36, #1a1a2e);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 18px;
+            padding: 24px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(40px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal h2 {
+            font-size: 1.15rem;
+            color: #fff;
+            margin-bottom: 20px;
+        }
+
+        .modal label {
+            display: block;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-bottom: 6px;
+        }
+
+        .modal input[type="text"],
+        .modal textarea {
+            width: 100%;
+            background: rgba(15, 15, 26, 0.6);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 8px;
+            padding: 10px;
+            color: #fff;
+            margin-bottom: 16px;
+        }
+
+        .modal textarea {
+            min-height: 60px;
+            resize: vertical;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            background: rgba(15, 15, 26, 0.6);
+            border: 2px dashed rgba(99, 102, 241, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .payment-info {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            color: #fbbf24;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-submit {
+            flex: 1;
+            background: #10b981;
+            border: none;
+            color: #fff;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 700;
+        }
+
+        .btn-cancel {
+            background: rgba(239, 68, 68, 0.1);
+            color: #f87171;
+            border: 1px solid transparent;
+            padding: 12px 20px;
+            border-radius: 8px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #64748b;
+            margin: auto;
+        }
+
+        /* ─── Toast Notification ─── */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #22c55e;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 3000;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.error {
+            background: #ef4444;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <h1>🏙️ Civic Issue Reporter</h1>
+        <div class="header-links">
+            <div class="user-stats">
+                <span id="userName">Hi, User</span>
+                <span id="userBadge">Badge: Newbie</span>
+            </div>
+            <a href="admin.html">Admin</a>
+            <a href="#" id="logoutBtn">Logout</a>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="tabs">
+            <button class="tab-btn active" id="tabOpen">Open Issues</button>
+            <button class="tab-btn" id="tabResolved">Resolved Issues</button>
+        </div>
+        <button class="map-toggle-btn" id="mapToggleBtn">🗺️ Show Map</button>
+    </div>
+
+    <div id="mapContainer">
+        <div id="map"></div>
+    </div>
+
+    <div class="feed-section" id="issuesFeed">
+        <div class="empty-state">
+            <div style="font-size:2rem;margin-bottom:10px">📡</div>
+            Fetching your location...
+        </div>
+    </div>
+
+    <!-- FAB -->
+    <button class="fab" id="reportFab" title="Report Issue 📱">📸</button>
+
+    <!-- Modal Overlay -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h2>Report an Issue</h2>
+            <form id="reportForm">
+                <label>Title</label>
+                <input type="text" id="issueTitle" placeholder="e.g. Pothole on Main Street" required>
+
+                <label>Description</label>
+                <textarea id="issueDesc" placeholder="Describe the issue in detail..." required></textarea>
+
+                <label>Human Loss / Effect (Optional)</label>
+                <textarea id="issueHumanLoss" placeholder="Describe any injuries or impact..."></textarea>
+
+                <label>Pin Exact Location</label>
+                <div id="modalMap"
+                    style="width: 100%; height: 160px; border-radius: 8px; margin-bottom: 16px; border: 1px solid rgba(99, 102, 241, 0.2); z-index: 10;">
+                </div>
+
+                <label>Photo Evidence</label>
+                <div class="file-input-wrapper">
+                    <span style="font-size:1.5rem;display:block;margin-bottom:5px;">📷</span>
+                    <span id="fileLabel">Tap to capture or select photo</span>
+                    <input type="file" id="issueImage" accept="image/*" capture="environment" required>
+                </div>
+
+                <div class="payment-info">
+                    <strong>₹1 Verification Fee Required</strong><br>
+                    To prevent spam, an INR 1.00 fee via Razorpay is required to post this issue.
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" id="cancelBtn">Cancel</button>
+                    <button type="submit" class="btn-submit" id="submitBtn">Pay ₹1 & Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script src="../script/index.js"></script>
+
+</body>
+
+</html>
