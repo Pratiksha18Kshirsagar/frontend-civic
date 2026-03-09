@@ -1,4 +1,4 @@
-const BaseUrl = "http://localhost:4000";
+const BaseUrl = "https://civic-issue-reporter-cx6z.onrender.com";
 const token = localStorage.getItem('token');
 const issuesFeed = document.getElementById('issuesFeed');
 const reportFab = document.getElementById('reportFab');

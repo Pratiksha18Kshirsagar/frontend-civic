@@ -1,4 +1,4 @@
-const BaseUrl = "http://localhost:4000";
+const BaseUrl = "https://civic-issue-reporter-cx6z.onrender.com";
 
 document.getElementById('signupForm').addEventListener('submit', async (e) => {
     e.preventDefault();
