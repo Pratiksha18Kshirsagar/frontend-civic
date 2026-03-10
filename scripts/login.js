@@ -16,9 +16,9 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             localStorage.setItem('userName', res.data.name);
             localStorage.setItem('userRole', res.data.role);
             if (res.data.role === 'admin') {
-                window.location.href = './admin.html';
+                window.location.href = './views/admin.html';
             } else {
-                window.location.href = './main.html';
+                window.location.href = './views/main.html';
             }
         }
     } catch (err) {
