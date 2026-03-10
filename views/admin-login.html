@@ -18,7 +18,7 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: #0f0f1a;
+            background: #f8fafc;
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -29,11 +29,11 @@
         .container {
             width: 100%;
             max-width: 400px;
-            background: linear-gradient(145deg, #1e1e36, #1a1a2e);
-            border: 1px solid rgba(239, 68, 68, 0.15);
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 18px;
             padding: 36px 30px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
         }
 
         .logo {
@@ -64,7 +64,7 @@
             display: block;
             font-size: 0.78rem;
             font-weight: 600;
-            color: #94a3b8;
+            color: #475569;
             margin-bottom: 6px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -72,20 +72,25 @@
 
         input {
             width: 100%;
-            background: rgba(15, 15, 26, 0.6);
-            border: 1px solid rgba(239, 68, 68, 0.2);
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
             border-radius: 10px;
             padding: 12px 14px;
-            color: #e2e8f0;
+            color: #0f172a;
             font-size: 0.9rem;
             font-family: 'Inter', sans-serif;
             margin-bottom: 18px;
             outline: none;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input::placeholder {
+            color: #94a3b8;
         }
 
         input:focus {
             border-color: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
         }
 
         button {
@@ -99,13 +104,19 @@
             font-weight: 700;
             cursor: pointer;
             font-family: 'Inter', sans-serif;
-            transition: opacity 0.2s, transform 0.2s;
+            transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
             margin-bottom: 16px;
+            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
         }
 
         button:hover {
             opacity: 0.9;
-            transform: scale(1.01);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+        }
+
+        button:active {
+            transform: translateY(1px);
         }
 
         .links {
@@ -115,20 +126,20 @@
         }
 
         .links a {
-            color: #fca5a5;
+            color: #ef4444;
             text-decoration: none;
             font-weight: 600;
             transition: color 0.2s;
         }
 
         .links a:hover {
-            color: #fff;
+            color: #dc2626;
         }
 
         .error-msg {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.25);
-            color: #f87171;
+            background: #fee2e2;
+            border: 1px solid #fca5a5;
+            color: #ef4444;
             padding: 10px 14px;
             border-radius: 8px;
             font-size: 0.82rem;
